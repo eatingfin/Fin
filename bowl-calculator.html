@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DIY Bowl – Macro Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 2rem auto; padding: 1rem; }
+    h1 { font-size: 1.4rem; }
+    fieldset { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+    legend { font-weight: 600; }
+    label { display: block; margin: .35rem 0; cursor: pointer; }
+    select { width: 100%; padding: .5rem; font-size: 1rem; }
+    #summary { background: #f7f7f7; border-radius: 8px; padding: 1rem; position: sticky; top: 1rem; }
+    #summary h2 { margin-top: 0; font-size: 1.1rem; }
+    .row { display: flex; justify-content: space-between; padding: .25rem 0; border-bottom: 1px solid #eee; }
+    .row:last-child { border: none; }
+  </style>
+</head>
+<body>
+<h1>🥗 DIY Bowl Calculator</h1>
+<div id="summary">
+  <h2>Nutrition Summary</h2>
+  <div id="totals">Select ingredients below…</div>
+</div>
+<form id="bowl-form"></form>
+<script>
+// ─────────────────────────────────────────────
+// Ingredient data (from your spreadsheet)
+// ─────────────────────────────────────────────
+const ingredients = {
+  Base: [
+    { name: "Brown Rice",       kcal: 198,  protein: 4.68,  fat: 1.44,  carbs: 41.4,  fiber: 2.8,  sodium: 1.8,   sugar: 0.18 },
+    { name: "Sushi Rice",       kcal: 234,  protein: 4.32,  fat: 0.36,  carbs: 50.4,  fiber: 0.72, sodium: 1.8,   sugar: 0 },
+    { name: "Salad Greens",     kcal: 11.2, protein: 0.72,  fat: 0.08,  carbs: 2.24,  fiber: 0.88, sodium: 6.4,   sugar: 0.64 },
+    { name: "Quinoa",           kcal: 180,  protein: 6.15,  fat: 2.85,  carbs: 31.5,  fiber: 4.2,  sodium: 7.5,   sugar: 1.2 },
+    { name: "Cauliflower Rice", kcal: 34.5, protein: 2.7,   fat: 0.45,  carbs: 6,     fiber: 3,    sodium: 22.5,  sugar: 2.7 }
+  ],
+  Protein: [
+    { name: "Falafel (5 pc)",   kcal: 233,  protein: 12.5,  fat: 22.5,  carbs: 40,    fiber: 5,    sodium: 400,   sugar: 1 },
+    { name: "Grilled Chicken",  kcal: 128,  protein: 24.8,  fat: 2.8,   carbs: 0,     fiber: 0,    sodium: 368,   sugar: 0 },
+    { name: "Grilled Salmon",   kcal: 184,  protein: 20,    fat: 11.2,  carbs: 0,     fiber: 0,    sodium: 360,   sugar: 0 },
+    { name: "Poached Shrimp",   kcal: 57,   protein: 13.2,  fat: 0.6,   carbs: 0,     fiber: 0,    sodium: 66,    sugar: 0 },
+    { name: "Pulled Chicken",   kcal: 156,  protein: 20,    fat: 17.6,  carbs: 9.6,   fiber: 0.4,  sodium: 480,   sugar: 8 },
+    { name: "Roast Beef",       kcal: 136,  protein: 24,    fat: 4,     carbs: 0,     fiber: 0,    sodium: 352,   sugar: 0 },
+    { name: "Salmon Sashimi",   kcal: 108,  protein: 12,    fat: 6.6,   carbs: 0,     fiber: 0,    sodium: 27,    sugar: 0 },
+    { name: "Tempeh",           kcal: 224,  protein: 12.6,  fat: 15.4,  carbs: 7,     fiber: 3.5,  sodium: 7,     sugar: 0.35 }
+  ],
+  Sides: [
+    { name: "Lettuce",          kcal: 2.8,  protein: 0.18,  fat: 0.02,  carbs: 0.56,  fiber: 0.22, sodium: 1.6,   sugar: 0.16 },
+    { name: "Purple Cabbage",   kcal: 6,    protein: 0.28,  fat: 0.02,  carbs: 1.4,   fiber: 0.4,  sodium: 5,     sugar: 0.7 },
+    { name: "Sweet Corn",       kcal: 27,   protein: 0.9,   fat: 0.36,  carbs: 6.3,   fiber: 0.75, sodium: 0.3,   sugar: 1.35 },
+    { name: "Edamame",          kcal: 36,   protein: 3.3,   fat: 1.5,   carbs: 2.7,   fiber: 1.5,  sodium: 1.5,   sugar: 0.6 },
+    { name: "Wakame",           kcal: 12,   protein: 0.9,   fat: 0.18,  carbs: 2.4,   fiber: 0.15, sodium: 240,   sugar: 0.15 },
+    { name: "Cherry Tomato",    kcal: 5.4,  protein: 0.27,  fat: 0.06,  carbs: 1.17,  fiber: 0.45, sodium: 1.5,   sugar: 0.78 },
+    { name: "Cucumber",         kcal: 4.5,  protein: 0.21,  fat: 0.03,  carbs: 1.08,  fiber: 0.15, sodium: 0.6,   sugar: 0.51 },
+    { name: "Onion",            kcal: 8,    protein: 0.22,  fat: 0.02,  carbs: 1.86,  fiber: 0.34, sodium: 0.8,   sugar: 0.84 },
+    { name: "Mango",            kcal: 18,   protein: 0.24,  fat: 0.12,  carbs: 4.5,   fiber: 0.48, sodium: 0.3,   sugar: 1.2 },
+    { name: "Lychee",           kcal: 25.5, protein: 0.24,  fat: 0.12,  carbs: 6.6,   fiber: 0.3,  sodium: 1.5,   sugar: 5.4 },
+    { name: "Carrot",           kcal: 8.2,  protein: 0.18,  fat: 0.04,  carbs: 1.92,  fiber: 0.56, sodium: 13.8,  sugar: 0.94 }
+  ],
+  Sauces: [
+    { name: "Roasted Sesame Mayo",    kcal: 193.5, protein: 0.6,  fat: 20.4,  carbs: 1.05,  fiber: 0.18, sodium: 255,  sugar: 0.36 },
+    { name: "Sriracha Mayo",          kcal: 138,   protein: 0.54, fat: 14.4,  carbs: 1.95,  fiber: 0.3,  sodium: 345,  sugar: 1.05 },
+    { name: "Action Bronson",         kcal: 25,    protein: 1,    fat: 2.4,   carbs: 1.1,   fiber: 0,    sodium: 680,  sugar: 0.3 },
+    { name: "Wasabi Ginger Soy",      kcal: 18.4,  protein: 1.36, fat: 0.48,  carbs: 2.1,   fiber: 0.2,  sodium: 800,  sugar: 0.7 },
+    { name: "Chilli Oil Vinaigrette", kcal: 77,    protein: 0.36, fat: 8.3,   carbs: 0.7,   fiber: 0,    sodium: 320,  sugar: 0.3 },
+    { name: "Basil Oil",              kcal: 192,   protein: 0.45, fat: 21.15, carbs: 1.35,  fiber: 0.36, sodium: 237,  sugar: 0 },
+    { name: "Cilantro & Lime",        kcal: 93,    protein: 0.12, fat: 10.2,  carbs: 0.9,   fiber: 0.08, sodium: 160,  sugar: 0.24 },
+    { name: "Garlic Yoghurt",         kcal: 66,    protein: 2.25, fat: 5.4,   carbs: 1.5,   fiber: 0.06, sodium: 243,  sugar: 0.75 }
+  ],
+  Toppings: [
+    { name: "Roasted Almonds", kcal: 29,   protein: 1.05,  fat: 2.5,   carbs: 1.05,  fiber: 0.6,  sodium: 0.05, sugar: 0 },
+    { name: "Wasabi Peas",     kcal: 21,   protein: 0.7,   fat: 0.6,   carbs: 3,     fiber: 0.4,  sodium: 25,   sugar: 0.4 },
+    { name: "Crispy Seaweed",  kcal: 6,    protein: 0.7,   fat: 0.06,  carbs: 0.8,   fiber: 0.6,  sodium: 9,    sugar: 0 },
+    { name: "Togarashi",       kcal: 3.2,  protein: 0.12,  fat: 0.12,  carbs: 0.45,  fiber: 0.25, sodium: 0.5,  sugar: 0.02 },
+    { name: "Chilli Flakes",   kcal: 2.8,  protein: 0.12,  fat: 0.1,   carbs: 0.5,   fiber: 0.25, sodium: 0.3,  sugar: 0 },
+    { name: "Garlic Chips",    kcal: 25,   protein: 0.4,   fat: 1.5,   carbs: 2.25,  fiber: 0.2,  sodium: 5,    sugar: 0.1 },
+    { name: "Sesame Seed",     kcal: 11.3, protein: 0.34,  fat: 0.96,  carbs: 0.46,  fiber: 0.24, sodium: 0.22, sugar: 0 },
+    { name: "Spring Onion",    kcal: 0.64, protein: 0.036, fat: 0.004, carbs: 0.146, fiber: 0.052,sodium: 0.32, sugar: 0.046 }
+  ],
+  "Add-Ons": [
+    { name: "Avocado (¼)",     kcal: 40,   protein: 0.5,   fat: 3.67,  carbs: 2,     fiber: 1.67, sodium: 1.67, sugar: 0.17 },
+    { name: "Pumpkin",         kcal: 59.5, protein: 0.84,  fat: 3.5,   carbs: 7,     fiber: 1.05, sodium: 1.4,  sugar: 2.45 },
+    { name: "Quinoa (extra)",  kcal: 36,   protein: 1.23,  fat: 0.57,  carbs: 6.3,   fiber: 0.84, sodium: 1.5,  sugar: 0.24 },
+    { name: "Scrambled Egg",   kcal: 180,  protein: 12,    fat: 14,    carbs: 1.2,   fiber: 0,    sodium: 170,  sugar: 1.2 },
+    { name: "Togarashi Egg",   kcal: 35,   protein: 3,     fat: 2.5,   carbs: 0.3,   fiber: 0,    sodium: 30,   sugar: 0.3 },
+    { name: "Broccoli",        kcal: 45,   protein: 1.5,   fat: 3,     carbs: 3.6,   fiber: 1.5,  sodium: 18,   sugar: 0.9 },
+    { name: "Cauliflower",     kcal: 39,   protein: 1.08,  fat: 2.7,   carbs: 3,     fiber: 1.2,  sodium: 18,   sugar: 1.08 }
+  ]
+};
+// ─────────────────────────────────────────────
+// Build UI
+// ─────────────────────────────────────────────
+const form = document.getElementById("bowl-form");
+const totalsDiv = document.getElementById("totals");
+const singleSelect = ["Base", "Protein", "Sauces"];  // categories allowing only one choice
+for (const [category, items] of Object.entries(ingredients)) {
+  const fieldset = document.createElement("fieldset");
+  fieldset.innerHTML = `<legend>${category}</legend>`;
+  if (singleSelect.includes(category)) {
+    // dropdown
+    const sel = document.createElement("select");
+    sel.name = category;
+    sel.innerHTML = `<option value="">— none —</option>` +
+      items.map((it, i) => `<option value="${i}">${it.name}</option>`).join("");
+    sel.addEventListener("change", calculate);
+    fieldset.appendChild(sel);
+  } else {
+    // checkboxes
+    items.forEach((it, i) => {
+      const lbl = document.createElement("label");
+      lbl.innerHTML = `<input type="checkbox" name="${category}" value="${i}"> ${it.name}`;
+      lbl.querySelector("input").addEventListener("change", calculate);
+      fieldset.appendChild(lbl);
+    });
+  }
+  form.appendChild(fieldset);
+}
+// ─────────────────────────────────────────────
+// Calculate totals
+// ─────────────────────────────────────────────
+function calculate() {
+  const totals = { kcal: 0, protein: 0, fat: 0, carbs: 0, fiber: 0, sodium: 0, sugar: 0 };
+  for (const [category, items] of Object.entries(ingredients)) {
+    if (singleSelect.includes(category)) {
+      const idx = form.querySelector(`select[name="${category}"]`).value;
+      if (idx !== "") addItem(items[idx]);
+    } else {
+      form.querySelectorAll(`input[name="${category}"]:checked`).forEach(cb => {
+        addItem(items[cb.value]);
+      });
+    }
+  }
+  function addItem(it) {
+    for (const key of Object.keys(totals)) totals[key] += it[key];
+  }
+  totalsDiv.innerHTML = `
+    <div class="row"><span>Calories</span><strong>${totals.kcal.toFixed(0)} kcal</strong></div>
+    <div class="row"><span>Protein</span><strong>${totals.protein.toFixed(1)} g</strong></div>
+    <div class="row"><span>Fat</span><strong>${totals.fat.toFixed(1)} g</strong></div>
+    <div class="row"><span>Carbs</span><strong>${totals.carbs.toFixed(1)} g</strong></div>
+    <div class="row"><span>Fiber</span><strong>${totals.fiber.toFixed(1)} g</strong></div>
+    <div class="row"><span>Sodium</span><strong>${totals.sodium.toFixed(0)} mg</strong></div>
+    <div class="row"><span>Sugar</span><strong>${totals.sugar.toFixed(1)} g</strong></div>
+  `;
+}
+calculate(); // init
+</script>
+</body>
+</html>

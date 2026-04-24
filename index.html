@@ -2,81 +2,197 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Fin Macro Calculator</title>
+<title>FIN Macro Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
+:root {
+  --fin-primary: #0979d7;
+  --fin-accent: #f9fd3d;
+  --fin-bg: #fffef6;
+  --fin-button: #90c4d9;
+}
+
+/* GLOBAL */
 body {
   font-family: system-ui, sans-serif;
+  background: var(--fin-bg);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
   max-width: 900px;
-  margin: 2rem auto;
-  padding: 1rem;
+  margin: 0 auto;
+  padding: 1.5rem;
 }
 
-h1 { font-size: 2rem; }
-h2 { margin-top: 2rem; }
-
-fieldset {
-  border: 1px solid #ccc;
-  padding: 1rem;
-  border-radius: 8px;
-  margin: 1rem 0;
+/* HEADER */
+.header {
+  padding: 1rem 1.5rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--fin-primary);
 }
 
-legend { font-weight: bold; }
+/* TABS */
+.tab-bar {
+  display: flex;
+  border-bottom: 2px solid #ddd;
+  margin-bottom: 1rem;
+}
 
-label {
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-bottom: none;
+}
+
+.tab.active {
+  background: var(--fin-primary);
+  color: white;
+  border-color: var(--fin-primary);
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+}
+
+/* CONTENT */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
   display: block;
-  margin: .25rem 0;
 }
 
-.summary-box {
-  background: #f4f4f4;
+/* ACCORDIONS */
+.accordion {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.accordion-header {
+  padding: 0.8rem;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--fin-primary);
+  border-bottom: 1px solid #eee;
+}
+
+.accordion-header:hover {
+  background: #eef6ff;
+}
+
+.accordion-body {
+  display: none;
+  padding: 0.6rem 1rem 1rem;
+}
+
+.item {
+  margin: 0.4rem 0;
+}
+
+.item-label {
+  cursor: pointer;
+  display: block;
+}
+
+.expand {
+  background: #f4faff;
+  padding: 0.35rem 0.7rem;
+  border-left: 3px solid var(--fin-primary);
+  margin-left: 1.2rem;
+  font-size: 0.9rem;
+  display: none;
+}
+
+/* SUMMARY BOX */
+.summary {
+  background: white;
   padding: 1rem;
   border-radius: 10px;
   margin-bottom: 1.5rem;
+  border: 1px solid #eee;
 }
 
 .summary-row {
   display: flex;
-  justify-content: flex-start;
   gap: 12px;
-  margin: 4px 0;
+  margin: 5px 0;
 }
 
-.summary-row span {
+.summary-label {
   font-weight: 600;
-  min-width: 85px;
+  min-width: 90px;
+}
+
+/* RESET BUTTON */
+.reset-btn {
+  background: var(--fin-button);
+  color: black;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.reset-btn:hover {
+  background: #7fb3c6;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Fin Macro Calculator</h1>
+<div class="header">FIN Macro Calculator</div>
 
-<!-- DIY TOTALS -->
-<div class="summary-box">
-  <h3>DIY Bowl Totals</h3>
-  <div id="diy-totals">Select DIY ingredients…</div>
+<div class="container">
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <div class="tab active" data-tab="diy">DIY Bowl</div>
+    <div class="tab" data-tab="premade">Premade Items</div>
+  </div>
+
+  <!-- DIY CONTENT -->
+  <div id="diy" class="tab-content active">
+
+    <div class="summary" id="diy-summary">
+      Select ingredients to calculate macros…
+    </div>
+
+    <div id="diy-accordions"></div>
+
+    <button class="reset-btn" onclick="resetDIY()">Reset DIY Bowl</button>
+  </div>
+
+  <!-- PREMADE CONTENT -->
+  <div id="premade" class="tab-content">
+
+    <div class="summary" id="menu-summary">
+      Select an item to calculate macros…
+    </div>
+
+    <div id="menu-accordions"></div>
+
+    <button class="reset-btn" onclick="resetMenu()">Reset Premade</button>
+  </div>
+
 </div>
-
-<!-- MENU TOTALS -->
-<div class="summary-box">
-  <h3>Premade Menu Totals</h3>
-  <div id="menu-totals">Select menu items…</div>
-</div>
-
-<h2>DIY Bowl</h2>
-<div id="diy-section"></div>
-
-<h2>Premade Menu Items</h2>
-<div id="menu-section"></div>
 
 <script>
-// ------------------------------------------------------------
-// NUTRITION DATA
-// ------------------------------------------------------------
+/* -------------------------------------------
+   DATA (same as your spreadsheet)
+------------------------------------------- */
 const diy = {
   Base: [
     {name:"Brown Rice", kcal:198, protein:4.68, fat:1.44, carbs:41.4, fiber:2.8, sodium:1.8, sugar:0.18},
@@ -139,9 +255,6 @@ const diy = {
   ]
 };
 
-// ------------------------------------------------------------
-// PREMADE (unchanged from previous version)
-// ------------------------------------------------------------
 const menu = {
   RiceBowls: [
     {name:"Go Gyu", kcal:601.35, protein:38.54, fat:22.13, carbs:59.88, fiber:4.13, sodium:170, sugar:2.27},
@@ -188,88 +301,139 @@ const menu = {
   ]
 };
 
-// ------------------------------------------------------------
-// BUILD DIY SECTION
-// ------------------------------------------------------------
-const diySection = document.getElementById("diy-section");
+/* -------------------------------------------
+   TABS
+------------------------------------------- */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelector(".tab.active").classList.remove("active");
+    document.querySelector(".tab-content.active").classList.remove("active");
 
-Object.entries(diy).forEach(([group, items]) => {
-  const fs = document.createElement("fieldset");
-  fs.innerHTML = `<legend>${group}</legend>`;
-  items.forEach((item, i) => {
-    const label = document.createElement("label");
-    label.innerHTML = `
-      <input type="checkbox" data-group="${group}" value="${i}">
-      ${item.name} — ${item.kcal} kcal
+    tab.classList.add("active");
+    document.getElementById(tab.dataset.tab).classList.add("active");
+  });
+});
+
+/* -------------------------------------------
+   BUILD ACCORDIONS (DIY + Premade)
+------------------------------------------- */
+function buildAccordions(data, containerId, isPremade=false) {
+  const container = document.getElementById(containerId);
+
+  Object.entries(data).forEach(([group, items]) => {
+    const acc = document.createElement("div");
+    acc.className = "accordion";
+
+    acc.innerHTML = `
+      <div class="accordion-header">${group}</div>
+      <div class="accordion-body"></div>
     `;
-    label.querySelector("input").addEventListener("change", calculateTotals);
-    fs.appendChild(label);
+
+    const body = acc.querySelector(".accordion-body");
+
+    items.forEach((item, index) => {
+      const row = document.createElement("div");
+      row.className = "item";
+
+      const id = `${containerId}-${group}-${index}`;
+
+      row.innerHTML = `
+        <label class="item-label">
+          <input type="${isPremade ? "radio" : "checkbox"}" name="${isPremade ? group : id}" data-group="${group}" value="${index}">
+          ${item.name} — ${item.kcal} kcal
+        </label>
+        <div class="expand">
+          Protein: ${item.protein} g<br>
+          Fat: ${item.fat} g<br>
+          Carbs: ${item.carbs} g<br>
+          Fiber: ${item.fiber} g<br>
+          Sodium: ${item.sodium} mg<br>
+          Sugar: ${item.sugar} g
+        </div>
+      `;
+
+      // expand macros on click (item row)
+      row.querySelector(".item-label").addEventListener("click", () => {
+        const exp = row.querySelector(".expand");
+        exp.style.display = exp.style.display === "block" ? "none" : "block";
+      });
+
+      // recalc macros
+      row.querySelector("input").addEventListener("change", calculateAll);
+
+      body.appendChild(row);
+    });
+
+    // open/close accordion
+    acc.querySelector(".accordion-header").addEventListener("click", () => {
+      body.style.display = body.style.display === "block" ? "none" : "block";
+    });
+
+    container.appendChild(acc);
   });
-  diySection.appendChild(fs);
-});
+}
 
-// ------------------------------------------------------------
-// BUILD PREMADE
-// ------------------------------------------------------------
-const menuSection = document.getElementById("menu-section");
+buildAccordions(diy, "diy-accordions", false);
+buildAccordions(menu, "menu-accordions", true);
 
-Object.entries(menu).forEach(([group, items]) => {
-  const fs = document.createElement("fieldset");
-  fs.innerHTML = `<legend>${group}</legend>`;
-  const select = document.createElement("select");
-  select.innerHTML =
-    `<option value="">— none —</option>` +
-    items.map((x, i) => `<option value="${i}">${x.name}</option>`).join("");
-  select.dataset.group = group;
-  select.addEventListener("change", calculateTotals);
-  fs.appendChild(select);
-  menuSection.appendChild(fs);
-});
+/* -------------------------------------------
+   CALCULATIONS
+------------------------------------------- */
+function calculateAll() {
+  calculateDIY();
+  calculateMenu();
+}
 
-// ------------------------------------------------------------
-// CALCULATION LOGIC
-// ------------------------------------------------------------
-function calculateTotals() {
-  const diyTotals = {kcal:0, protein:0, fat:0, carbs:0, fiber:0, sodium:0, sugar:0};
-  const menuTotals = {kcal:0, protein:0, fat:0, carbs:0, fiber:0, sodium:0, sugar:0};
+function calculateDIY() {
+  const totals = {kcal:0, protein:0, fat:0, carbs:0, fiber:0, sodium:0, sugar:0};
 
-  // DIY
-  document.querySelectorAll("#diy-section input[type=checkbox]:checked").forEach(el => {
+  document.querySelectorAll("#diy-accordions input:checked").forEach(el => {
     const item = diy[el.dataset.group][el.value];
-    Object.keys(diyTotals).forEach(k => diyTotals[k] += item[k]);
+    for (const k in totals) totals[k] += item[k];
   });
 
-  // PREMADE
-  document.querySelectorAll("#menu-section select").forEach(sel => {
-    if (sel.value !== "") {
-      const item = menu[sel.dataset.group][sel.value];
-      Object.keys(menuTotals).forEach(k => menuTotals[k] += item[k]);
-    }
+  updateSummary("diy-summary", totals);
+}
+
+function calculateMenu() {
+  const totals = {kcal:0, protein:0, fat:0, carbs:0, fiber:0, sodium:0, sugar:0};
+
+  document.querySelectorAll("#menu-accordions input:checked").forEach(el => {
+    const item = menu[el.dataset.group][el.value];
+    for (const k in totals) totals[k] += item[k];
   });
 
-  // UPDATE DIY BOX
-  document.getElementById("diy-totals").innerHTML = `
-    <div class="summary-row"><span>Calories</span>${diyTotals.kcal.toFixed(0)} kcal</div>
-    <div class="summary-row"><span>Protein</span>${diyTotals.protein.toFixed(1)} g</div>
-    <div class="summary-row"><span>Fat</span>${diyTotals.fat.toFixed(1)} g</div>
-    <div class="summary-row"><span>Carbs</span>${diyTotals.carbs.toFixed(1)} g</div>
-    <div class="summary-row"><span>Fiber</span>${diyTotals.fiber.toFixed(1)} g</div>
-    <div class="summary-row"><span>Sodium</span>${diyTotals.sodium.toFixed(0)} mg</div>
-    <div class="summary-row"><span>Sugar</span>${diyTotals.sugar.toFixed(1)} g</div>
-  `;
+  updateSummary("menu-summary", totals);
+}
 
-  // UPDATE MENU BOX
-  document.getElementById("menu-totals").innerHTML = `
-    <div class="summary-row"><span>Calories</span>${menuTotals.kcal.toFixed(0)} kcal</div>
-    <div class="summary-row"><span>Protein</span>${menuTotals.protein.toFixed(1)} g</div>
-    <div class="summary-row"><span>Fat</span>${menuTotals.fat.toFixed(1)} g</div>
-    <div class="summary-row"><span>Carbs</span>${menuTotals.carbs.toFixed(1)} g</div>
-    <div class="summary-row"><span>Fiber</span>${menuTotals.fiber.toFixed(1)} g</div>
-    <div class="summary-row"><span>Sodium</span>${menuTotals.sodium.toFixed(0)} mg</div>
-    <div class="summary-row"><span>Sugar</span>${menuTotals.sugar.toFixed(1)} g</div>
+function updateSummary(id, totals) {
+  document.getElementById(id).innerHTML = `
+    <div class="summary-row"><div class="summary-label">Calories</div>${totals.kcal.toFixed(0)} kcal</div>
+    <div class="summary-row"><div class="summary-label">Protein</div>${totals.protein.toFixed(1)} g</div>
+    <div class="summary-row"><div class="summary-label">Fat</div>${totals.fat.toFixed(1)} g</div>
+    <div class="summary-row"><div class="summary-label">Carbs</div>${totals.carbs.toFixed(1)} g</div>
+    <div class="summary-row"><div class="summary-label">Fiber</div>${totals.fiber.toFixed(1)} g</div>
+    <div class="summary-row"><div class="summary-label">Sodium</div>${totals.sodium.toFixed(0)} mg</div>
+    <div class="summary-row"><div class="summary-label">Sugar</div>${totals.sugar.toFixed(1)} g</div>
   `;
+}
+
+/* -------------------------------------------
+   RESET
+------------------------------------------- */
+function resetDIY() {
+  document.querySelectorAll("#diy-accordions input").forEach(i => i.checked = false);
+  document.querySelectorAll("#diy-accordions .expand").forEach(e => e.style.display = "none");
+  document.getElementById("diy-summary").innerHTML = "Select ingredients to calculate macros…";
+}
+
+function resetMenu() {
+  document.querySelectorAll("#menu-accordions input").forEach(i => i.checked = false);
+  document.querySelectorAll("#menu-accordions .expand").forEach(e => e.style.display = "none");
+  document.getElementById("menu-summary").innerHTML = "Select an item to calculate macros…";
 }
 </script>
 
 </body>
 </html>
+

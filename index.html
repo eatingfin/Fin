@@ -2,33 +2,38 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Macro Calculator</title>
+<title>Fin Macro Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body { font-family: system-ui, sans-serif; margin: 2rem auto; max-width: 800px; padding: 1rem;}
-h1 { font-size: 1.8rem; }
-fieldset { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin-bottom: 1.2rem; }
+body { font-family: system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 1rem; }
+h1 { font-size: 2rem; }
+h2 { margin-top: 2rem; }
+fieldset { border: 1px solid #ccc; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
 legend { font-weight: bold; }
-select, input[type=checkbox] { margin: .3rem 0; }
-.summary-box { background: #f4f4f4; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; }
-.summary-box div { display: flex; justify-content: space-between; padding: .25rem 0; }
+label { display: block; margin: .25rem 0; }
+.summary-box { background: #f4f4f4; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; }
+.summary-row { display: flex; justify-content: space-between; margin: .25rem 0; }
 </style>
 </head>
 
 <body>
 
-<h1>Macro Calculator</h1>
+<h1>Fin Macro Calculator</h1>
 
-<div class="summary-box" id="summary">Select items to calculate totals…</div>
+<div class="summary-box" id="summary">
+  Select items to calculate totals…
+</div>
 
-<form id="form"></form>
+<h2>DIY Bowl</h2>
+<div id="diy-section"></div>
+
+<h2>Premade Menu Items</h2>
+<div id="menu-section"></div>
 
 <script>
 // ------------------------------------------------------------
-// DATA SECTION — Based on your spreadsheet
+// NUTRITION DATA
 // ------------------------------------------------------------
-
-// DIY Bowl
 const diy = {
   Base: [
     {name:"Brown Rice", kcal:198, protein:4.68, fat:1.44, carbs:41.4, fiber:2.8, sodium:1.8, sugar:0.18},
@@ -91,10 +96,8 @@ const diy = {
   ]
 };
 
-// ------------------------------------------------------------
-// MENU ITEMS (wraps, bowls, salads…)
-// ------------------------------------------------------------
-const premade = {
+// PREMADE
+const menu = {
   RiceBowls: [
     {name:"Go Gyu", kcal:601.35, protein:38.54, fat:22.13, carbs:59.88, fiber:4.13, sodium:170, sugar:2.27},
     {name:"Mad Mex", kcal:570.23, protein:34.34, fat:24.45, carbs:54.87, fiber:6.73, sodium:101, sugar:4.39},
@@ -141,78 +144,75 @@ const premade = {
 };
 
 // ------------------------------------------------------------
-// BUILD THE UI
+// BUILD DIY SECTION (all MULTI select)
 // ------------------------------------------------------------
-const form = document.getElementById("form");
+const diySection = document.getElementById('diy-section');
 
-function addGroup(title, items, type="single") {
-  const fs = document.createElement("fieldset");
-  fs.innerHTML = `<legend>${title}</legend>`;
-  if (type === "single") {
-    const s = document.createElement("select");
-    s.innerHTML = `<option value="">— none —</option>` +
-      items.map((x,i)=>`<option value="${i}">${x.name}</option>`).join("");
-    s.dataset.group = title;
-    s.addEventListener("change", calculate);
-    fs.appendChild(s);
-  } else {
-    items.forEach((x,i)=>{
-      const lbl = document.createElement("label");
-      lbl.innerHTML = `<input type="checkbox" data-group="${title}" value="${i}"> ${x.name}`;
-      lbl.querySelector("input").addEventListener("change", calculate);
-      fs.appendChild(lbl);
-    });
-  }
-  form.appendChild(fs);
-}
-
-// DIY Bowl groups
-addGroup("DIY Base", diy.Base);
-addGroup("DIY Protein", diy.Protein);
-addGroup("DIY Sides", diy.Sides, "multi");
-addGroup("DIY Sauces", diy.Sauces);
-addGroup("DIY Toppings", diy.Toppings, "multi");
-addGroup("DIY Add-Ons", diy.AddOns, "multi");
-
-// Menu Items
-addGroup("Rice Bowls", premade.RiceBowls);
-addGroup("Salads", premade.Salads);
-addGroup("Broth Bowls", premade.BrothBowls);
-addGroup("Wraps", premade.Wraps);
-addGroup("Breakfast", premade.Breakfast);
-addGroup("Cakes", premade.Cakes);
-addGroup("Small Bites", premade.SmallBites);
+Object.entries(diy).forEach(([groupName, items]) => {
+  const fs = document.createElement('fieldset');
+  fs.innerHTML = `<legend>${groupName}</legend>`;
+  items.forEach((item, idx) => {
+    const label = document.createElement('label');
+    label.innerHTML = `
+      <input type="checkbox" data-group="${groupName}" value="${idx}">
+      ${item.name}
+    `;
+    label.querySelector('input').addEventListener('change', calculateTotals);
+    fs.appendChild(label);
+  });
+  diySection.appendChild(fs);
+});
 
 // ------------------------------------------------------------
-// CALCULATE TOTALS
+// BUILD PREMADE (each group SINGLE choice)
 // ------------------------------------------------------------
-function calculate() {
+const menuSection = document.getElementById('menu-section');
+
+Object.entries(menu).forEach(([groupName, items]) => {
+  const fs = document.createElement('fieldset');
+  fs.innerHTML = `<legend>${groupName}</legend>`;
+  const select = document.createElement('select');
+  select.innerHTML = `<option value="">— none —</option>` + 
+    items.map((item,i)=>`<option value="${i}">${item.name}</option>`).join("");
+  select.dataset.group = groupName;
+  select.addEventListener('change', calculateTotals);
+  fs.appendChild(select);
+  menuSection.appendChild(fs);
+});
+
+// ------------------------------------------------------------
+function calculateTotals() {
   const totals = {kcal:0, protein:0, fat:0, carbs:0, fiber:0, sodium:0, sugar:0};
 
-  // Search through all selects + checkboxes
-  document.querySelectorAll("select, input[type=checkbox]:checked").forEach(el=>{
-    const group = el.dataset.group;
-    const idx = el.value;
-    if (!idx) return;
+  // DIY bowls (multiple selections)
+  document.querySelectorAll('#diy-section input[type=checkbox]:checked')
+    .forEach(el => {
+      const group = el.dataset.group;
+      const item = diy[group][el.value];
+      Object.keys(totals).forEach(k => totals[k] += item[k]);
+    });
 
-    const src = diy[group] || premade[group];
-    const item = src[idx];
+  // Premade (single per category)
+  document.querySelectorAll('#menu-section select')
+    .forEach(sel => {
+      if (sel.value !== "") {
+        const group = sel.dataset.group;
+        const item = menu[group][sel.value];
+        Object.keys(totals).forEach(k => totals[k] += item[k]);
+      }
+    });
 
-    Object.keys(totals).forEach(k => totals[k] += item[k]);
-  });
-
-  const s = document.getElementById("summary");
-  s.innerHTML = `
-    <div><span>Calories</span><strong>${totals.kcal.toFixed(0)} kcal</strong></div>
-    <div><span>Protein</span><strong>${totals.protein.toFixed(1)} g</strong></div>
-    <div><span>Fat</span><strong>${totals.fat.toFixed(1)} g</strong></div>
-    <div><span>Carbs</span><strong>${totals.carbs.toFixed(1)} g</strong></div>
-    <div><span>Fiber</span><strong>${totals.fiber.toFixed(1)} g</strong></div>
-    <div><span>Sodium</span><strong>${totals.sodium.toFixed(0)} mg</strong></div>
-    <div><span>Sugar</span><strong>${totals.sugar.toFixed(1)} g</strong></div>
+  // Display
+  document.getElementById('summary').innerHTML = `
+    <div class="summary-row"><span>Calories</span><strong>${totals.kcal.toFixed(0)} kcal</strong></div>
+    <div class="summary-row"><span>Protein</span><strong>${totals.protein.toFixed(1)} g</strong></div>
+    <div class="summary-row"><span>Fat</span><strong>${totals.fat.toFixed(1)} g</strong></div>
+    <div class="summary-row"><span>Carbs</span><strong>${totals.carbs.toFixed(1)} g</strong></div>
+    <div class="summary-row"><span>Fiber</span><strong>${totals.fiber.toFixed(1)} g</strong></div>
+    <div class="summary-row"><span>Sodium</span><strong>${totals.sodium.toFixed(0)} mg</strong></div>
+    <div class="summary-row"><span>Sugar</span><strong>${totals.sugar.toFixed(1)} g</strong></div>
   `;
 }
-
 </script>
 
 </body>
